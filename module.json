@@ -1,0 +1,17 @@
+{
+  "name": "wrd-gpio-expander-nxp-pcal64",
+  "version": "1.0.0",
+  "description": "Driver for the NXP PCAL64 I/O expander family.",
+  "keywords": [],
+  "author": "Marcus Chang <marcus.chang@arm.com>",
+  "repository": {
+    "url": "git@github.com:ARMmbed/wrd-gpio-expander-nxp-pcal64.git",
+    "type": "git"
+  },
+  "homepage": "https://github.com/ARMmbed/wrd-gpio-expander-nxp-pcal64",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "mbed-drivers": "^1.0.0",
+    "wrd-utilities": "^2.0.0"
+  }
+}
