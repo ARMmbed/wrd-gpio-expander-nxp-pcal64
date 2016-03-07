@@ -17,9 +17,6 @@
 #include "mbed-drivers/mbed.h"
 #include "wrd-gpio-expander/PCAL64.h"
 
-#include "swo/swo.h"
-#define printf swoprintf
-
 /*****************************************************************************/
 /* PCAL64                                                                    */
 /*****************************************************************************/
