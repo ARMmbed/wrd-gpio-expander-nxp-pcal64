@@ -66,9 +66,9 @@ public:
      * @param callback Function to call when I/O expander is ready for next command.
      * @return Boolean result. True means command was accepted, False means it was not.
      */
-    bool bulkDirections(uint32_t pins, uint32_t directions, FunctionPointer0<void> callback)
+    bool bulkSetDirection(uint32_t pins, uint32_t directions, FunctionPointer0<void> callback)
     {
-        return gpio.bulkWrite(pins, directions, callback);
+        return gpio.bulkSetDirection(pins, directions, callback);
     }
 
     /**
@@ -85,7 +85,7 @@ public:
     }
 
     /**
-     * @brief Set pins to be trigger interrupts.
+     * @brief Set pins to trigger interrupts.
      * @details When interrupts are triggered the callback handler contains the pin values.
      *
      * @param pins Pins affected by this call.
