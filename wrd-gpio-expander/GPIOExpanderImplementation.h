@@ -40,20 +40,35 @@ public:
     }
 
     /**
-     * @brief Set direction and values for at most 32 pins.
+     * @brief Set values for at most 32 pins.
+     * @details Pins are labeled LSB. For I/O expanders with less than 32 pins
+     *          the higher bits are ignored. I/O expanders with more than 32 pins
+     *          are not supported.
+     *
+     * @param pins The pins affected by this call are set high in bitmap (LSB).
+     * @param values Pin values. 0 means low, 1 means high.
+     * @param callback Function to call when I/O expander is ready for next command.
+     * @return Boolean result. True means command was accepted, False means it was not.
+     */
+    bool bulkWrite(uint32_t pins, uint32_t values, FunctionPointer0<void> callback)
+    {
+        return gpio.bulkWrite(pins, values, callback);
+    }
+
+    /**
+     * @brief Set directions for at most 32 pins.
      * @details Pins are labeled LSB. For I/O expanders with less than 32 pins
      *          the higher bits are ignored. I/O expanders with more than 32 pins
      *          are not supported.
      *
      * @param pins The pins affected by this call are set high in bitmap (LSB).
      * @param directions Pin directions. 0 means input, 1 means output.
-     * @param values Pin values. 0 means low, 1 means high.
      * @param callback Function to call when I/O expander is ready for next command.
      * @return Boolean result. True means command was accepted, False means it was not.
      */
-    bool bulkWrite(uint32_t pins, uint32_t directions, uint32_t values, FunctionPointer0<void> callback)
+    bool bulkDirections(uint32_t pins, uint32_t directions, FunctionPointer0<void> callback)
     {
-        return gpio.bulkWrite(pins, directions, values, callback);
+        return gpio.bulkWrite(pins, directions, callback);
     }
 
     /**

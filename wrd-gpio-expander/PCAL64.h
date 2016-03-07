@@ -64,18 +64,30 @@ public:
     bool bulkRead(FunctionPointer1<void, uint32_t> callback);
 
     /**
-     * @brief Set direction and values for at most 32 pins.
+     * @brief Set values for at most 32 pins.
+     * @details Pins are labeled LSB. For I/O expanders with less than 32 pins
+     *          the higher bits are ignored. I/O expanders with more than 32 pins
+     *          are not supported.
+     *
+     * @param pins The pins affected by this call are set high in bitmap (LSB).
+     * @param values Pin values. 0 means low, 1 means high.
+     * @param callback Function to call when I/O expander is ready for next command.
+     * @return Boolean result. True means command was accepted, False means it was not.
+     */
+    bool bulkWrite(uint32_t pins, uint32_t values, FunctionPointer0<void> callback);
+
+    /**
+     * @brief Set directions for at most 32 pins.
      * @details Pins are labeled LSB. For I/O expanders with less than 32 pins
      *          the higher bits are ignored. I/O expanders with more than 32 pins
      *          are not supported.
      *
      * @param pins The pins affected by this call are set high in bitmap (LSB).
      * @param directions Pin directions. 0 means input, 1 means output.
-     * @param values Pin values. 0 means low, 1 means high.
      * @param callback Function to call when I/O expander is ready for next command.
      * @return Boolean result. True means command was accepted, False means it was not.
      */
-    bool bulkWrite(uint32_t pins, uint32_t directions, uint32_t values, FunctionPointer0<void> callback);
+    bool bulkSetDirection(uint32_t pins, uint32_t directions, FunctionPointer0<void> callback);
 
     /**
      * @brief Toggles output on given pins.
@@ -88,7 +100,7 @@ public:
     bool bulkToggle(uint32_t pins, FunctionPointer0<void> callback);
 
     /**
-     * @brief Set pins to be trigger interrupts.
+     * @brief Set pins to trigger interrupts.
      * @details When interrupts are triggered the callback handler contains the pin values.
      *
      * @param pins Pins affected by this call.
@@ -135,8 +147,7 @@ private:
     InterruptIn irq;
 
     uint16_t pins;
-    uint16_t param1;
-    uint16_t param2;
+    uint16_t parameter;
     uint16_t cache;
 
     uint16_t backupStatus;
@@ -150,18 +161,21 @@ private:
 
     typedef enum {
         STATE_READ_GET_STATUS,
-        STATE_READ_GET_VALUES,
+        STATE_READ_GET_INPUT,
+
+        STATE_WRITE_GET_OUTPUT,
+
         STATE_WRITE_GET_DIRECTIONS,
-        STATE_WRITE_SET_DIRECTIONS,
-        STATE_WRITE_GET_VALUES,
-        STATE_TOGGLE_GET_VALUES,
+
+        STATE_TOGGLE_GET_OUTPUT,
+
         STATE_INTERRUPT_GET_DIRECTIONS,
         STATE_INTERRUPT_SET_DIRECTIONS,
         STATE_INTERRUPT_GET_LATCH,
         STATE_INTERRUPT_SET_LATCH,
         STATE_INTERRUPT_GET_MASK,
         STATE_INTERRUPT_GET_STATUS,
-        STATE_INTERRUPT_GET_VALUES,
+        STATE_INTERRUPT_GET_INPUT,
         STATE_SIGNAL_DONE,
         STATE_IDLE
     } state_t;

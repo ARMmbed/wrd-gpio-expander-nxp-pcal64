@@ -15,21 +15,24 @@
  */
 
 #include "mbed-drivers/mbed.h"
-#include "gpio-pcal64/PCAL64.h"
+#include "wrd-gpio-expander/PCAL64.h"
+
+#include "swo/swo.h"
+#define printf swoprintf
 
 /*****************************************************************************/
 /* PCAL64                                                                    */
 /*****************************************************************************/
 
-PCAL64 ioexpander0(YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_EXTERNAL_GPIO_GPIO0_I2C_SDA,
-                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_EXTERNAL_GPIO_GPIO0_I2C_SCL,
-                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_EXTERNAL_GPIO_GPIO0_I2C_ADDRESS,
-                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_EXTERNAL_GPIO_GPIO0_IRQ_PIN);
+PCAL64 ioexpander0(YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_GPIO_EXPANDER_GPIO0_I2C_SDA,
+                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_GPIO_EXPANDER_GPIO0_I2C_SCL,
+                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_GPIO_EXPANDER_GPIO0_I2C_ADDRESS,
+                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_GPIO_EXPANDER_GPIO0_IRQ_PIN);
 
-PCAL64 ioexpander1(YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_EXTERNAL_GPIO_GPIO1_I2C_SDA,
-                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_EXTERNAL_GPIO_GPIO1_I2C_SCL,
-                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_EXTERNAL_GPIO_GPIO1_I2C_ADDRESS,
-                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_EXTERNAL_GPIO_GPIO1_IRQ_PIN);
+PCAL64 ioexpander1(YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_GPIO_EXPANDER_GPIO1_I2C_SDA,
+                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_GPIO_EXPANDER_GPIO1_I2C_SCL,
+                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_GPIO_EXPANDER_GPIO1_I2C_ADDRESS,
+                   YOTTA_CFG_HARDWARE_WEARABLE_REFERENCE_DESIGN_GPIO_EXPANDER_GPIO1_IRQ_PIN);
 
 
 void irqHandler(uint16_t address, uint32_t pins, uint32_t values)
@@ -42,9 +45,14 @@ void writeDone(void)
 
 }
 
+void directionDone(void)
+{
+    ioexpander1.bulkWrite(PCAL64::P0_6, PCAL64::P0_6, writeDone);
+}
+
 void irqDone()
 {
-    ioexpander1.bulkWrite(PCAL64::P0_6, PCAL64::P0_6, 0, writeDone);
+    ioexpander1.bulkSetDirection(PCAL64::P0_6, PCAL64::P0_6, directionDone);
 }
 
 /*****************************************************************************/

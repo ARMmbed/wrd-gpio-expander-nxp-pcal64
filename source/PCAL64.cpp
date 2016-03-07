@@ -60,7 +60,26 @@ bool PCAL64::bulkRead(FunctionPointer1<void, uint32_t> callback)
     return result;
 }
 
-bool PCAL64::bulkWrite(uint32_t _pins, uint32_t directions, uint32_t values, FunctionPointer0<void> callback)
+bool PCAL64::bulkWrite(uint32_t _pins, uint32_t values, FunctionPointer0<void> callback)
+{
+    bool result = false;
+
+    if (state == STATE_IDLE)
+    {
+        state = STATE_WRITE_GET_OUTPUT;
+        externalDoneHandler = callback;
+
+        pins = _pins;
+        parameter = values;
+
+        FunctionPointer0<void> fp(this, &PCAL64::eventHandler);
+        result = i2c.read(address, OUTPUT_PORT_0, readBuffer, 2, fp);
+    }
+
+    return result;
+}
+
+bool PCAL64::bulkSetDirection(uint32_t _pins, uint32_t directions, FunctionPointer0<void> callback)
 {
     bool result = false;
 
@@ -74,8 +93,7 @@ bool PCAL64::bulkWrite(uint32_t _pins, uint32_t directions, uint32_t values, Fun
         /* NOTE: the PCAL64 defines 0 to be output and 1 to be input.
            This is opposite from the gpio-expander API, hence the invesion.
         */
-        param1 = ~directions;
-        param2 = values;
+        parameter = ~directions;
 
         FunctionPointer0<void> fp(this, &PCAL64::eventHandler);
         result = i2c.read(address, CONFIGURATION_PORT_0, readBuffer, 2, fp);
@@ -90,7 +108,7 @@ bool PCAL64::bulkToggle(uint32_t _pins, FunctionPointer0<void> callback)
 
     if (state == STATE_IDLE)
     {
-        state = STATE_TOGGLE_GET_VALUES;
+        state = STATE_TOGGLE_GET_OUTPUT;
         externalDoneHandler = callback;
 
         pins = _pins;
@@ -112,7 +130,7 @@ bool PCAL64::bulkSetInterrupt(uint32_t _pins, uint32_t values, FunctionPointer0<
         externalDoneHandler = callback;
 
         pins = _pins;
-        param1 = values;
+        parameter = values;
 
         FunctionPointer0<void> fp(this, &PCAL64::eventHandler);
         result = i2c.read(address, CONFIGURATION_PORT_0, readBuffer, 2, fp);
@@ -164,7 +182,7 @@ void PCAL64::eventHandler()
         /*********************************************************************/
         case STATE_READ_GET_STATUS:
             {
-                state = STATE_READ_GET_VALUES;
+                state = STATE_READ_GET_INPUT;
 
                 uint32_t status = readBuffer[1];
                 status = (status << 8) | readBuffer[0];
@@ -176,7 +194,7 @@ void PCAL64::eventHandler()
             }
             break;
 
-        case STATE_READ_GET_VALUES:
+        case STATE_READ_GET_INPUT:
             {
                 state = STATE_IDLE;
 
@@ -196,40 +214,7 @@ void PCAL64::eventHandler()
         /*********************************************************************/
         /* bulkWrite                                                         */
         /*********************************************************************/
-        case STATE_WRITE_GET_DIRECTIONS:
-            {
-                state = STATE_WRITE_SET_DIRECTIONS;
-
-                uint16_t directions = readBuffer[1];
-                directions = (directions << 8) | readBuffer[0];
-
-                /* pins are input when bit is 1 */
-
-                // enable bits
-                directions |= (pins & param1);
-
-                // disable bits
-                directions &= ~(pins & ~param1);
-
-                uint8_t writeBuffer[2];
-                writeBuffer[0] = directions;
-                writeBuffer[1] = directions >> 8;
-
-                FunctionPointer0<void> fp(this, &PCAL64::eventHandler);
-                i2c.write(address, CONFIGURATION_PORT_0, writeBuffer, 2, fp);
-            }
-            break;
-
-        case STATE_WRITE_SET_DIRECTIONS:
-            {
-                state = STATE_WRITE_GET_VALUES;
-
-                FunctionPointer0<void> fp(this, &PCAL64::eventHandler);
-                i2c.read(address, OUTPUT_PORT_0, readBuffer, 2, fp);
-            }
-            break;
-
-        case STATE_WRITE_GET_VALUES:
+        case STATE_WRITE_GET_OUTPUT:
             {
                 state = STATE_SIGNAL_DONE;
 
@@ -239,10 +224,10 @@ void PCAL64::eventHandler()
                 /* pins are high when bit is 1 */
 
                 // enable bits
-                values |= (pins & param2);
+                values |= (pins & parameter);
 
                 // disable bits
-                values &= ~(pins & ~param2);
+                values &= ~(pins & ~parameter);
 
                 uint8_t writeBuffer[2];
                 writeBuffer[0] = values;
@@ -254,9 +239,36 @@ void PCAL64::eventHandler()
             break;
 
         /*********************************************************************/
+        /* bulkWrite                                                         */
+        /*********************************************************************/
+        case STATE_WRITE_GET_DIRECTIONS:
+            {
+                state = STATE_SIGNAL_DONE;
+
+                uint16_t configuration = readBuffer[1];
+                configuration = (configuration << 8) | readBuffer[0];
+
+                /* pins are input when bit is 1 */
+
+                // enable bits
+                configuration |= (pins & parameter);
+
+                // disable bits
+                configuration &= ~(pins & ~parameter);
+
+                uint8_t writeBuffer[2];
+                writeBuffer[0] = configuration;
+                writeBuffer[1] = configuration >> 8;
+
+                FunctionPointer0<void> fp(this, &PCAL64::eventHandler);
+                i2c.write(address, CONFIGURATION_PORT_0, writeBuffer, 2, fp);
+            }
+            break;
+
+        /*********************************************************************/
         /* bulkToggle                                                        */
         /*********************************************************************/
-        case STATE_TOGGLE_GET_VALUES:
+        case STATE_TOGGLE_GET_OUTPUT:
             {
                 state = STATE_SIGNAL_DONE;
 
@@ -287,20 +299,20 @@ void PCAL64::eventHandler()
             {
                 state = STATE_INTERRUPT_SET_DIRECTIONS;
 
-                uint16_t directions = readBuffer[1];
-                directions = (directions << 8) | readBuffer[0];
+                uint16_t configuration = readBuffer[1];
+                configuration = (configuration << 8) | readBuffer[0];
 
                 /* pins are input when bit is 1 */
 
                 // enable bits
-                directions |= (pins & param1);
+                configuration |= (pins & parameter);
 
                 // disable bits
-                directions &= ~(pins & ~param1);
+                configuration &= ~(pins & ~parameter);
 
                 uint8_t writeBuffer[2];
-                writeBuffer[0] = directions;
-                writeBuffer[1] = directions >> 8;
+                writeBuffer[0] = configuration;
+                writeBuffer[1] = configuration >> 8;
 
                 FunctionPointer0<void> fp(this, &PCAL64::eventHandler);
                 i2c.write(address, CONFIGURATION_PORT_0, writeBuffer, 2, fp);
@@ -326,10 +338,10 @@ void PCAL64::eventHandler()
                 /* pins are latched when bit is 1 */
 
                 // enable bits
-                latch |= (pins & param1);
+                latch |= (pins & parameter);
 
                 // disable bits
-                latch &= ~(pins & ~param1);
+                latch &= ~(pins & ~parameter);
 
                 uint8_t writeBuffer[2];
                 writeBuffer[0] = latch;
@@ -360,10 +372,10 @@ void PCAL64::eventHandler()
                 /* interrupts are enabled when bit is 0 */
 
                 // enable bits
-                values |= (pins & ~param1);
+                values |= (pins & ~parameter);
 
                 // disable bits
-                values &= ~(pins & param1);
+                values &= ~(pins & parameter);
 
                 uint8_t writeBuffer[2];
                 writeBuffer[0] = values;
@@ -379,7 +391,7 @@ void PCAL64::eventHandler()
         /*********************************************************************/
         case STATE_INTERRUPT_GET_STATUS:
             {
-                state = STATE_INTERRUPT_GET_VALUES;
+                state = STATE_INTERRUPT_GET_INPUT;
 
                 cache = readBuffer[1];
                 cache = (cache << 8) | readBuffer[0];
@@ -389,7 +401,7 @@ void PCAL64::eventHandler()
             }
             break;
 
-        case STATE_INTERRUPT_GET_VALUES:
+        case STATE_INTERRUPT_GET_INPUT:
             {
                 state = STATE_IDLE;
 
