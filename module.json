@@ -1,6 +1,6 @@
 {
   "name": "wrd-gpio-expander-nxp-pcal64",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Driver for the NXP PCAL64 I/O expander family.",
   "keywords": [],
   "author": "Marcus Chang <marcus.chang@arm.com>",
