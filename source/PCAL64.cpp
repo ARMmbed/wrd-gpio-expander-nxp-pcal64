@@ -37,6 +37,14 @@ PCAL64::~PCAL64()
     irq.fall(NULL);
 }
 
+/**
+ * Reads a bank of pins (at most 32) and calls handler with pin values.
+ *
+ * Command sequence:
+ *      * read interrupt status (an cache it, to avoid race condition).
+ *      * read input
+ *      * call handler with read value
+ */
 bool PCAL64::bulkRead(FunctionPointer1<void, uint32_t> callback)
 {
     bool result = false;
@@ -60,6 +68,14 @@ bool PCAL64::bulkRead(FunctionPointer1<void, uint32_t> callback)
     return result;
 }
 
+/**
+ * Write a bank of pins (at most 32) and call handler when done.
+ *
+ * Command sequence:
+ *      * read current output values
+ *      * update values and write back to device
+ *      * call handler signaling command done
+ */
 bool PCAL64::bulkWrite(uint32_t _pins, uint32_t values, FunctionPointer0<void> callback)
 {
     bool result = false;
@@ -79,6 +95,14 @@ bool PCAL64::bulkWrite(uint32_t _pins, uint32_t values, FunctionPointer0<void> c
     return result;
 }
 
+/**
+ * Set direction for a bank of pins (at most 32) and call handler when done.
+ *
+ * Command sequence:
+ *      * read current direction values
+ *      * update values and write back to device
+ *      * call handler signaling command done
+ */
 bool PCAL64::bulkSetDirection(uint32_t _pins, uint32_t directions, FunctionPointer0<void> callback)
 {
     bool result = false;
@@ -102,6 +126,14 @@ bool PCAL64::bulkSetDirection(uint32_t _pins, uint32_t directions, FunctionPoint
     return result;
 }
 
+/**
+ * Toggles pin values for a bank of pins (at most 32) and calls handler when done.
+ *
+ * Command sequence:
+ *      * read pin output values
+ *      * invert each pin and write values back
+ *      * call handler signaling command done
+ */
 bool PCAL64::bulkToggle(uint32_t _pins, FunctionPointer0<void> callback)
 {
     bool result = false;
@@ -120,6 +152,14 @@ bool PCAL64::bulkToggle(uint32_t _pins, FunctionPointer0<void> callback)
     return result;
 }
 
+/**
+ * Enable and disable interrupts for a bank of pins.
+ *
+ * Command sequence:
+ *      * read, update, write pin directions
+ *      * read, update, write latch setting on pins
+ *      * read, update, write interrupt mask to enable interrupts
+ */
 bool PCAL64::bulkSetInterrupt(uint32_t _pins, uint32_t values, FunctionPointer0<void> callback)
 {
     bool result = false;
@@ -149,12 +189,25 @@ void PCAL64::clearInterruptHandler(void)
     externalIRQHandler.clear();
 }
 
+uint8_t PCAL64::getNumberOfPins(void) const
+{
+    return (uint8_t) Pin_End;
+}
+
 void PCAL64::internalHandlerIRQ(void)
 {
     minar::Scheduler::postCallback(this, &PCAL64::internalHandlerTask)
         .tolerance(1);
 }
 
+/**
+ * Interrupt handler task. Reads interrupt status and calls handler with pin values.
+ *
+ * Command sequence:
+ *      * read interrupt status
+ *      * read pin values
+ *      * signal handler with both values
+ */
 void PCAL64::internalHandlerTask(void)
 {
     if (state == STATE_IDLE)
@@ -304,11 +357,11 @@ void PCAL64::eventHandler()
 
                 /* pins are input when bit is 1 */
 
-                // enable bits
+                // pins with interrupt enabled are set to input
+                // when a pin is no longer interruptable
+                // it remains as an input pin until explicitly changed
+                // because all pins are input as default
                 configuration |= (pins & parameter);
-
-                // disable bits
-                configuration &= ~(pins & ~parameter);
 
                 uint8_t writeBuffer[2];
                 writeBuffer[0] = configuration;
